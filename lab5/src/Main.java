@@ -5,7 +5,7 @@ import java.util.Random;
 
 class Consumer implements Runnable
 {
-    private static int MAX_SIZE_TO_TAKE = 4;
+    private static int MAX_SIZE_TO_TAKE = 5;
     Product product;
     Random rand = new Random();
     public Consumer(Product p)
@@ -16,9 +16,11 @@ class Consumer implements Runnable
     public void run() {
 
         try {
+
             while(true){
-                product.consume(rand.nextInt()%MAX_SIZE_TO_TAKE+1);
-               // System.out.println("Consumer: "+Thread.currentThread().getId());
+                product.consume(rand.nextInt(MAX_SIZE_TO_TAKE-1)+1);
+                //Thread.sleep((int) (Math.random() * 100));
+
             }
 
         }catch(Exception e)
@@ -30,7 +32,7 @@ class Consumer implements Runnable
 
 class Producer implements  Runnable
 {
-    private static int MAX_SIZE_TO_INSERT = 4;
+    private static int MAX_SIZE_TO_INSERT = 5;
     Product product;
     Random rand = new Random();
     public Producer(Product p)
@@ -41,10 +43,10 @@ class Producer implements  Runnable
     public void run() {
 
         try{
-        while(true) {
-            product.produce(rand.nextInt()%MAX_SIZE_TO_INSERT+1);
-           // System.out.println("Producent: "+Thread.currentThread().getId());
 
+        while(true) {
+            product.produce(rand.nextInt(MAX_SIZE_TO_INSERT-1)+1);
+            //  Thread.sleep((int) (Math.random() * 100));
         }
     }catch(Exception e)
     {
@@ -54,29 +56,30 @@ class Producer implements  Runnable
 }
 
 public class Main {
-    public static final int N = 700;
+    public static final int howManyProducers = 2;
+    public static final int howManyConsumers = 100;
+    public static final int bufferSize = 10;
     public static void main(String[] args)
     {
-        Product product = new Product();
+        Product product =  new ProductWithHasWaiters(bufferSize);
         List<Thread> list = new ArrayList<Thread>();
         Runnable runnable;
-        for(int i=0; i<N; i++)
+        for(int i=0; i<howManyProducers; i++)
         {
-
-            if(i%2==0)
-            {
-                runnable = new Consumer(product);
-            }
-            else
-            {
-                runnable = new Producer(product);
-            }
-
+            runnable = new Producer(product);
             Thread t = new Thread(runnable);
             list.add(t);
             t.start();
-
         }
+
+        for(int i=0; i<howManyConsumers; i++)
+        {
+            runnable = new Consumer(product);
+            Thread t = new Thread(runnable);
+            list.add(t);
+            t.start();
+        }
+
 
         for(Thread t: list)
         {

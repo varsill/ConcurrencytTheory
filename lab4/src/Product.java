@@ -1,19 +1,20 @@
-import java.util.ArrayList;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Product {
-    private Integer[] buffer = new Integer[MAX_SIZE];
-    public final static int MAX_SIZE = 10;
+    private Integer[] buffer;
+    public int MAX_SIZE;
     Lock lock = new ReentrantLock(true);
     Condition waitForProducing = lock.newCondition();
     Condition waitForConsuming = lock.newCondition();
 
 
 
-    public Product()
+    public Product(int x)
     {
+        MAX_SIZE = x;
+        buffer = new Integer[MAX_SIZE];
         for(int i=0; i<MAX_SIZE; i++)
         {
             buffer[i]=0;
@@ -31,21 +32,23 @@ public class Product {
 
     }
 
-    public void produce(int howMany) throws InterruptedException
+    public void produce(int howMany)
     {
 
 
         lock.lock();
-
+        System.out.println("Producer: "+Thread.currentThread().getId()+" entered. He wants to produce: "+howMany+" elements.");
         try{
             int howManyFree = howManyFreePlaces();
 
             while(howMany>howManyFree)
             {
+                System.out.println("Producer: "+Thread.currentThread().getId()+" is waiting. ");
                 waitForProducing.await();
                 howManyFree = howManyFreePlaces();
             }
-
+            //PRODUCING
+            System.out.println("Producer: "+Thread.currentThread().getId()+" is producing "+howMany+" elements.");
             for(int i=0; i<MAX_SIZE; i++)
             {
                 if(buffer[i]==0 && howMany>0){
@@ -68,17 +71,20 @@ public class Product {
 
     }
 
-    public void consume(int howMany) throws InterruptedException
+    public void consume(int howMany)
     {
         lock.lock();
+        System.out.println("Consumer: "+Thread.currentThread().getId()+" entered. He wants to produce: "+howMany+" elements.");
         try{
             int howManyTaken = MAX_SIZE-howManyFreePlaces();
             while(howManyTaken==0)
             {
+                System.out.println("Consumer: "+Thread.currentThread().getId()+" is waiting. ");
                 waitForConsuming.await();
                 howManyTaken = MAX_SIZE-howManyFreePlaces();
             }
-
+            //CONSUMING
+            System.out.println("Consumer: "+Thread.currentThread().getId()+" is consuming "+howMany+" elements.");
             for(int i=0; i<MAX_SIZE; i++)
             {
                 if(buffer[i]==1&&howMany>0){

@@ -1,4 +1,4 @@
-public class MyClass {
+public class MyInteger {
 
     private int number = 0;
 

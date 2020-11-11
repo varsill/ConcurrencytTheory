@@ -8,10 +8,12 @@ import static java.lang.Thread.sleep;
 
 class Consumer implements Runnable
 {
+    int MAX_TO_CONSUME;
     Product product;
     Random rand = new Random();
-    public Consumer(Product p)
+    public Consumer(Product p, int max_to_consume)
     {
+        MAX_TO_CONSUME = max_to_consume;
         product = p;
     }
     @Override
@@ -19,8 +21,8 @@ class Consumer implements Runnable
 
         try {
             while(true){
-                product.consume(rand.nextInt()%10+1);
-                System.out.println("Consumer: "+Thread.currentThread().getId());
+                product.consume(rand.nextInt(MAX_TO_CONSUME-1)+1);
+
             }
 
         }catch(Exception e)
@@ -32,10 +34,12 @@ class Consumer implements Runnable
 
 class Producer implements  Runnable
 {
+    int MAX_TO_PRODUCE;
     Product product;
     Random rand = new Random();
-    public Producer(Product p)
+    public Producer(Product p, int max_to_produce)
     {
+        MAX_TO_PRODUCE = max_to_produce;
         product = p;
     }
     @Override
@@ -43,8 +47,7 @@ class Producer implements  Runnable
 
         try{
         while(true) {
-            product.produce(rand.nextInt()%10+1);
-            System.out.println("Producent: "+Thread.currentThread().getId());
+            product.produce(rand.nextInt(MAX_TO_PRODUCE-1)+1);
 
         }
     }catch(Exception e)
@@ -57,7 +60,9 @@ public class Main {
     public static final int N = 20;
     public static void main(String[] args)
     {
-        Product product = new Product();
+        int max_to_produce = 10;
+        int max_to_consume = 10;
+        Product product = new Product(10);
         List<Thread> list = new ArrayList<Thread>();
         Runnable runnable;
         for(int i=0; i<N; i++)
@@ -65,11 +70,11 @@ public class Main {
 
             if(i%2==0)
             {
-                runnable = new Consumer(product);
+                runnable = new Consumer(product, max_to_consume);
             }
             else
             {
-                runnable = new Producer(product);
+                runnable = new Producer(product, max_to_produce);
             }
 
             Thread t = new Thread(runnable);
