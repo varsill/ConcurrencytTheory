@@ -1,2 +1,5 @@
-Zawieszenie występuje w Product 1 dla liczby konsumentów 20, liczby producentów 2, przy buforze wielkości 14, 
-gdy producent produkuje maksymalnie 6 rzeczy jednoczesnie, a konsument konsumuje maksymalnie 3 rzeczy jednocześnie
+lab5_*
+problem_z_cachem
+wytlumaczenie
+zawieszenie
+praca/

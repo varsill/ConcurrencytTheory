@@ -1,0 +1,45 @@
+ROZWIĄZANIE ZADANIA: https://github.com/varsill/ConcurrencytTheory/tree/master/lab5
+W zależności od tego, czy w klasie Main jako Product podamy obiekt typu ProductWithBoolean, czy też obiekt typu ProductWithHasWaiters, to uzyskamy wersje odpowiednio: (Z) i (W)
+
+
+Problem z wykorzystaniem hasWaiters jako warunku do sprawdzenia, czy jakiś wątek czeka już bezpośrednio na wykonanie operacji produkcji/
+konsumpcji polega na tym, że może zdarzyć się sytuacja, że na zmiennych warunkowych PIERWSZYKONS i PIERWSZYPROD może zostać zawieszony
+więcej niż jeden wątek. Jest to spowodowane tym, że wątek czekający na PIERWSZYKONS/PIERWSZYPROD po obudzeniu musi rywalizować z innymi wątkami o lock, a te inne wątki, które 
+wejdą do chronionej części procedury i wywołają hasWaiters na danej zmiennej warunkowej widzą, że nic na niej nie czeka.
+
+1) Zagłodzenie
+
+Jeżeli na PIERWSZYKONS zawieszony jest wątek K1, a wątek P1 wychodząc z funkcji produce() wywoła signal(PIERWSZYKONS) to K1 przestanie 
+czekać na zmiennej PIERWSZYKONS, a zacznie rywalizować z innymi wątkami o uzyskanie locka. Zakładając, że K1 potrzebował N elementów bufora,
+a po obudzeniu, w kolejce do lock został wyprzedzony przez wątek K2, który potrzebował M<=N elementów do konsumpcji, to K2 
+zużyję tę liczbę elementów, przez co K1 z powrotem zostanie zawieszony na zmiennej PIERWSZYKONS. Jeżeli N będzie bardzo duże, to
+może się zdarzyć, że pomimo obudzenia, zanim K1 zostanie dopuszczony do konsumpcji poprzez uzyskanie dostępu do locka, to zawsze inne procesy, chcące 
+skonsumować mniejszą liczbę elementów, będą pierwsze wykorzystywały elementy przeznaczone pierwotnie dla K1, a co za tym
+idzie, K1 zostanie zagłodzony.
+
+2) Zakleszczenie
+
+Rozpatrzmy następującą sytuację: dla 3 producentów, 3 konsumentów i bufora o wielkości 10. (konsumenci i producenci mogą konsumować/produkować od 1 do 5 elementów jednocześnie)
+1.bufor: 0 zajętych
+2.K1, chcący skonsumować 4 elementów, czeka na PIERWSZYKONS
+3.P1 produkuje 4 elementy, bufor: 4 zajęte
+4.P1 budzi PIERWSZY KONS
+5. K1 rywalizuje o lock z K2 i K3
+6. Rywalizację o lock wygrywa K2, chcący skonsumować 2 elementy
+7. K2, wywołując hasWaiters(PIERWSZYKONS) stwierdza, że nic na niej nie czeka, więc od razu przechodzi do sprawdzenia, czy może dokonać konsumpcji
+8. Z uwagi na fakt, że w buforze są 4 elementy zajęte, K2 zjada 2. bufor: 2 zajęte
+9. W rywalizacji o lock między K1 a K3 wygrywa K3.
+10. K3 chce skonsumować 5 elementów
+11. K3 wywołuje hasWaiters(PIERWSZYKONS). Stwierdza, że nikt nie czeka na zmiennej PIERWSZYKONS, więc sprawdza, czy może dokonać konsumpcji.
+12. Z uwagi na fakt, że K3 chce skonsumować 5 elementów, a w buforze są tylko 2, to zawiesza się na zmiennej PIERWSZYKONS
+13. Dostęp do locka uzyskuje K1, które budzi się wewnątrz pętli while() sprawdzającej, czy w buforze jest wystarczająco dużo elementów.
+14. Okazuje się, że nie, gdyż K1 chce skonsumować 5 elementów, a w buforze są tylko 2. K1 zawiesza się na PIERWSZYKONS
+
+Pokazaliśmy, że możliwe staje się, aby na kolejce PIERWSZYKONS zawieszone zostało kilka procesów. Załóżmy, że doszło do takiej sytuacji:
+1. Na PIERWSZYKONS czekają 2 procesy - K1, chcący skonsumować 2 elementy i K2, chcący skonsumować 4 elementy. BUFOR: 5 zajętych
+2. P1 dodaje 5 elementów do bufora i budzi PIERWSZYKONS, czyli K1. BUFOR: 10 zajętych
+3. K1 dostaje locka, może dokonać konsumpcji i pobiera 2 elementy. BUFOR: 8 zajętych
+4. Wchodzi proces P2, który chce wyprodukować 4 elementy. Zawiesza się na PIERWSZYPROD
+5. Teraz na PIERWSZYPROD wisi P2, a na PIERWSZYKONS wisi K2. 
+6. Do funkcji wchodzą kolejne procesy. Z uwagi na fakt, że hasWaiters(PIERWSZYKONS)==true oraz hasWaiters(PIERWSZYPROD)==true, wszystkie zawieszają się na
+RESZTAKONS i RESZTAPROD. Nie ma możliwości, aby obudzić procesy czekające na PIERWSZYPROD i PIERWSZYKONS. Dochodzi do zakleszczenia.
